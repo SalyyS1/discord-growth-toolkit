@@ -1,33 +1,24 @@
-import { env } from './config/env';
-import { db } from './db/database';
-import { client, startBot } from './bot/discord-client';
-import { registerBotEvents } from './bot/events/register-bot-events';
-import { startWebServer } from './web/web-server';
+import 'dotenv/config';
+import { envFileExists, findEnvProblems } from './config/check-env';
 
-async function main(): Promise<void> {
-  registerBotEvents();
-  await startBot();
-  const server = startWebServer();
+/**
+ * Cổng vào: kiểm tra cấu hình trước khi nạp phần còn lại của app, để lỗi thiếu
+ * env hiện ra dạng danh sách dễ đọc thay vì stack trace.
+ */
+const problems = findEnvProblems();
 
-  const shutdown = (signal: string) => {
-    console.log(`\n[app] Nhận ${signal}, đang tắt...`);
-    server.close();
-    void client.destroy();
-    db.close();
-    process.exit(0);
-  };
+if (problems.length > 0) {
+  console.error('\n  Chưa chạy được — cấu hình còn thiếu:\n');
+  for (const problem of problems) console.error(`   ✗ ${problem}`);
 
-  process.on('SIGINT', () => shutdown('SIGINT'));
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  if (!envFileExists()) {
+    console.error('\n  Chưa có file .env. Tạo rồi điền vào:');
+    console.error('     cp .env.example .env');
+  }
+
+  console.error('\n  Chi tiết từng bước: xem phần "Cài đặt" trong README.md\n');
+  process.exit(1);
 }
 
-main().catch((error) => {
-  console.error('[app] Khởi động thất bại:', error);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason) => {
-  console.error('[app] Promise chưa xử lý:', reason);
-});
-
-console.log(`[app] Dashboard sẽ chạy ở ${env.publicBaseUrl}`);
+const { boot } = await import('./app-boot');
+await boot();
