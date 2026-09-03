@@ -303,6 +303,8 @@ main {
   margin-top: 3px;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+  /* Giá trị dạng chữ (tên server…) phải xuống dòng thay vì bị cắt mất. */
+  overflow-wrap: anywhere;
 }
 
 .kpi .hint {

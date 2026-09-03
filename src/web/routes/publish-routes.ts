@@ -100,6 +100,13 @@ publishRoutes.post('/webhook', async (request, response) => {
     return;
   }
 
+  if (resolved.payload.useComponentsV2) {
+    response.status(400).json({
+      error: 'Webhook không gửi được Components V2 — dùng "Đăng lên channel" bằng bot',
+    });
+    return;
+  }
+
   const issues = validateTemplatePayload(resolved.payload);
   if (hasBlockingIssue(issues)) {
     response.status(400).json({ error: 'Nội dung chưa hợp lệ', issues });

@@ -1,4 +1,4 @@
-import { ChannelType, type GuildBasedChannel, type MessageEditOptions, type TextBasedChannel } from 'discord.js';
+import { ChannelType, MessageFlags, type GuildBasedChannel, type MessageEditOptions, type TextBasedChannel } from 'discord.js';
 import { client } from '../discord-client';
 import { recordPublishedMessage } from '../../db/repo-content';
 import { buildMessagePayload, buildRestPayload } from '../../shared/template-payload-builder';
@@ -84,6 +84,18 @@ function buildEditOptions(
   includeOptIn: boolean,
 ): MessageEditOptions {
   const built = buildMessagePayload(payload, context, { includeOptIn });
+
+  if (payload.useComponentsV2) {
+    // Đổi một tin cổ điển sang V2 phải xoá hẳn content + embeds. Chiều ngược lại
+    // (V2 về embed) Discord không cho, phải đăng tin mới.
+    return {
+      content: null,
+      embeds: [],
+      components: built.components ?? [],
+      flags: MessageFlags.IsComponentsV2,
+    } as MessageEditOptions;
+  }
+
   return {
     content: built.content ?? '',
     embeds: built.embeds ?? [],
@@ -105,6 +117,11 @@ export async function publishTemplateToWebhook(input: {
 }): Promise<PublishResult> {
   if (!/^https:\/\/(canary\.|ptb\.)?discord\.com\/api\/webhooks\//.test(input.webhookUrl)) {
     throw new Error('Webhook URL không hợp lệ');
+  }
+  // Webhook do người tạo trong Server Settings không được phép gửi component,
+  // nên Components V2 (vốn là component thuần) phải đăng bằng bot.
+  if (input.payload.useComponentsV2) {
+    throw new Error('Webhook không gửi được Components V2 — chọn "Đăng lên channel" bằng bot');
   }
 
   const body = buildRestPayload(input.payload, input.context);

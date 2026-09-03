@@ -2,15 +2,19 @@ import { DiscordAPIError, type User } from 'discord.js';
 import { env } from '../../config/env';
 import { logOutreach, type OutreachStatus } from '../../db/repo-growth';
 import { buildMessagePayload } from '../../shared/template-payload-builder';
+import type { BuildOptions } from '../../shared/template-payload-builder';
 import type { PlaceholderContext, TemplatePayload } from '../../shared/template-types';
 
 /** Discord: "Cannot send messages to this user" — DM bị đóng. */
 const CANNOT_SEND_TO_USER = 50007;
 
 export interface DmResult {
-  status: OutreachStatus;
+  status: DmSendStatus;
   error?: string;
 }
+
+/** sendTemplateDm không bao giờ trả 'duplicate' — trạng thái đó do caller ghi riêng. */
+export type DmSendStatus = Exclude<OutreachStatus, 'duplicate'>;
 
 // Nối tiếp mọi DM vào một hàng đợi và giãn nhịp: gửi dồn dập là cách nhanh nhất
 // để bot bị Discord đánh dấu spam, kể cả khi user đã đồng ý nhận.
@@ -30,12 +34,14 @@ export interface SendDmInput {
   context: PlaceholderContext;
   templateId: number | null;
   originGuildId: string | null;
+  /** Ví dụ: gắn nút huỷ nhận thông báo vào DM của một đợt thông báo. */
+  buildOptions?: BuildOptions;
 }
 
 /** Chỉ gọi khi đã có bản ghi consent (user tự bấm nút hoặc vừa join server nhà). */
 export function sendTemplateDm(input: SendDmInput): Promise<DmResult> {
   return enqueue(async () => {
-    const message = buildMessagePayload(input.payload, input.context);
+    const message = buildMessagePayload(input.payload, input.context, input.buildOptions);
     try {
       await input.user.send(message);
       logOutreach({

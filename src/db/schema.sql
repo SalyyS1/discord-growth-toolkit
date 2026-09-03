@@ -100,3 +100,39 @@ CREATE TABLE IF NOT EXISTS settings (
   key    TEXT PRIMARY KEY,
   value  TEXT NOT NULL
 );
+
+-- Người tự bấm nút đăng ký nhận thông báo ở home guild. Đây là bằng chứng consent
+-- cho mọi DM thông báo về sau; huỷ đăng ký thì ghi unsubscribed_at, không xoá dòng
+-- để còn dấu vết ai từng đồng ý và đã rút lại lúc nào.
+CREATE TABLE IF NOT EXISTS notify_subscribers (
+  guild_id         TEXT NOT NULL,
+  user_id          TEXT NOT NULL,
+  username         TEXT,
+  subscribed_at    TEXT NOT NULL,
+  unsubscribed_at  TEXT,
+  PRIMARY KEY (guild_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_notify_active ON notify_subscribers (guild_id, unsubscribed_at);
+
+-- Một đợt gửi thông báo. audience = 'subscribers' (người tự bấm nút) hoặc
+-- 'role' (mọi thành viên đang có role thông báo).
+CREATE TABLE IF NOT EXISTS notify_campaigns (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  guild_id     TEXT NOT NULL,
+  name         TEXT NOT NULL,
+  template_id  INTEGER,
+  audience     TEXT NOT NULL DEFAULT 'subscribers',
+  role_id      TEXT,
+  created_at   TEXT NOT NULL,
+  finished_at  TEXT
+);
+
+-- Một dòng cho mỗi (đợt, người nhận): chạy lại đợt cũ không gửi trùng cho người
+-- đã nhận được, nhưng vẫn thử lại người trước đó bị chặn DM.
+CREATE TABLE IF NOT EXISTS notify_campaign_sends (
+  campaign_id  INTEGER NOT NULL,
+  user_id      TEXT NOT NULL,
+  status       TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  PRIMARY KEY (campaign_id, user_id)
+);

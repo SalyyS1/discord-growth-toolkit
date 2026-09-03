@@ -7,6 +7,7 @@ import { analyticsRoutes } from './routes/analytics-routes';
 import { authRoutes } from './routes/auth-routes';
 import { guildRoutes } from './routes/guild-routes';
 import { inviteSourceRoutes } from './routes/invite-source-routes';
+import { notifyRoutes } from './routes/notify-routes';
 import { publishRoutes } from './routes/publish-routes';
 import { statusRoutes } from './routes/status-routes';
 import { templateRoutes } from './routes/template-routes';
@@ -25,6 +26,7 @@ export function startWebServer(): Server {
   app.use('/api/invite-sources', requireAuth, inviteSourceRoutes);
   app.use('/api/templates', requireAuth, templateRoutes);
   app.use('/api/publish', requireAuth, publishRoutes);
+  app.use('/api/notify', requireAuth, notifyRoutes);
   app.use('/api/analytics', requireAuth, analyticsRoutes);
 
   app.use(express.static(publicDirectory));

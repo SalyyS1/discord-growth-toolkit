@@ -41,6 +41,7 @@ export const api = {
   updateTemplate: (id, payload) => request('PUT', `/api/templates/${id}`, payload),
   deleteTemplate: (id) => request('DELETE', `/api/templates/${id}`),
   validateTemplate: (payload) => request('POST', '/api/templates/validate', { payload }),
+  convertToComponentsV2: (payload) => request('POST', '/api/templates/to-components-v2', { payload }),
 
   listInviteSources: () => request('GET', '/api/invite-sources'),
   createInviteSource: (body) => request('POST', '/api/invite-sources', body),
@@ -51,6 +52,13 @@ export const api = {
   editPublished: (body) => request('POST', '/api/publish/edit', body),
   sendTestDm: (body) => request('POST', '/api/publish/test-dm', body),
   publishHistory: () => request('GET', '/api/publish/history'),
+
+  notifyOverview: () => request('GET', '/api/notify'),
+  setNotifyRole: (roleId) => request('PUT', '/api/notify/role', { roleId }),
+  notifySubscribers: (limit = 200) => request('GET', `/api/notify/subscribers?limit=${limit}`),
+  notifyRoleAudience: () => request('GET', '/api/notify/role-audience'),
+  startNotifyCampaign: (body) => request('POST', '/api/notify/campaigns', body),
+  notifyCampaign: (id) => request('GET', `/api/notify/campaigns/${id}`),
 
   overview: (days = 30) => request('GET', `/api/analytics/overview?days=${days}`),
   joins: (options = {}) => {

@@ -2,12 +2,14 @@ import { api } from './api-client.js';
 import { el, skeletonCard, toast } from './dom-helpers.js';
 import { renderAnalytics } from './views/view-analytics.js';
 import { renderComposer } from './views/view-composer.js';
+import { renderNotify } from './views/view-notify.js';
 import { renderServers } from './views/view-servers.js';
 import { renderSources } from './views/view-sources.js';
 
 const ROUTES = {
   servers: renderServers,
   composer: renderComposer,
+  notify: renderNotify,
   analytics: renderAnalytics,
   sources: renderSources,
 };

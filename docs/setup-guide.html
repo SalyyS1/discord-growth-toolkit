@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cài đặt Growth Toolkit — bot, dashboard, tài khoản admin</title>
+    <meta name="description" content="Hướng dẫn cài Discord Growth Toolkit: tạo bot, mời bot đúng quyền, chạy dashboard và cấp quyền admin." />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235865f2'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'%3EG%3C/text%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        --bg: #1e2025;
+        --bg-card: #24262c;
+        --bg-input: #15161a;
+        --bg-raised: #31343c;
+        --border: #32343b;
+        --border-strong: #43464f;
+        --text: #d3d6dc;
+        --text-strong: #f3f4f7;
+        --text-muted: #8d919b;
+        --brand: #5865f2;
+        --green: #3ba55d;
+        --yellow: #faa81a;
+        --red: #ed4245;
+        --font: "Inter", "Segoe UI Variable Text", "Segoe UI", "Noto Sans", Roboto, system-ui, sans-serif;
+        --mono: "Cascadia Code", Consolas, "SF Mono", monospace;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 34px;
+        padding: 0 34px 90px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+        font-size: 15px;
+        line-height: 1.62;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: #62a8ff; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      h1, h2, h3 { color: var(--text-strong); margin: 0; line-height: 1.3; letter-spacing: -0.01em; }
+      h1 { font-size: 28px; font-weight: 660; }
+      h2 { font-size: 19px; font-weight: 640; }
+      h3 { font-size: 14.5px; font-weight: 650; margin-top: 20px; }
+      p { margin: 12px 0 0; }
+      :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+      /* ---------- Khung ---------- */
+      .toc {
+        position: sticky;
+        top: 0;
+        flex: 0 0 240px;
+        max-height: 100vh;
+        overflow-y: auto;
+        padding: 26px 0 30px;
+      }
+      .toc .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; color: var(--text-strong); }
+      .toc .mark {
+        width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px; display: grid; place-items: center;
+        background: linear-gradient(135deg, var(--brand), #8b5cf6); color: #fff; font-weight: 700;
+      }
+      .toc nav { margin-top: 18px; display: flex; flex-direction: column; gap: 1px; }
+      .toc a {
+        color: var(--text-muted); font-size: 13.5px; padding: 6px 10px; border-radius: 6px;
+        border-left: 2px solid transparent;
+      }
+      .toc a:hover { background: var(--bg-card); color: var(--text-strong); text-decoration: none; }
+      .toc a.active { color: var(--text-strong); background: rgb(88 101 242 / 14%); border-left-color: var(--brand); }
+      main { flex: 1; min-width: 0; max-width: 880px; padding-top: 26px; }
+
+      /* ---------- Hero ---------- */
+      .hero { padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+      .hero p { color: var(--text-muted); max-width: 62ch; }
+      .chips { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip {
+        font-size: 12.5px; padding: 4px 11px; border-radius: 999px;
+        background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted);
+      }
+      .chip b { color: var(--text-strong); font-weight: 600; }
+
+      /* ---------- Section ---------- */
+      section { margin-top: 34px; scroll-margin-top: 20px; }
+      .step-head { display: flex; align-items: center; gap: 12px; }
+      .step-no {
+        width: 30px; height: 30px; flex: 0 0 30px; border-radius: 50%; display: grid; place-items: center;
+        background: rgb(88 101 242 / 16%); border: 1px solid rgb(88 101 242 / 45%);
+        color: #a9b1ff; font-size: 13.5px; font-weight: 700;
+      }
+      .card {
+        margin-top: 14px; background: var(--bg-card); border: 1px solid var(--border);
+        border-radius: 12px; padding: 4px 20px 20px;
+      }
+      ol, ul { margin: 12px 0 0; padding-left: 24px; }
+      li { margin-top: 7px; }
+      li::marker { color: var(--text-muted); }
+      /* ---------- Code ---------- */
+      code {
+        background: var(--bg-input); border: 1px solid var(--border); border-radius: 5px;
+        padding: 1px 6px; font-family: var(--mono); font-size: 13px; color: #b7c0ff;
+      }
+      .block { position: relative; margin-top: 14px; }
+      .block pre {
+        margin: 0; padding: 14px 74px 14px 15px; background: var(--bg-input);
+        border: 1px solid var(--border); border-radius: 9px;
+        font-family: var(--mono); font-size: 13px; line-height: 1.7; color: #cdd3e4;
+        overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+      }
+      .block .copy {
+        position: absolute; top: 9px; right: 9px; padding: 4px 10px; border-radius: 6px;
+        background: var(--bg-raised); border: 1px solid var(--border-strong); color: var(--text);
+        font: 600 12px var(--font); cursor: pointer;
+      }
+      .block .copy:hover { background: var(--border-strong); }
+      .block .copy.done { color: var(--green); border-color: var(--green); }
+
+      /* ---------- Bảng ---------- */
+      table { width: 100%; margin-top: 14px; border-collapse: collapse; font-size: 13.8px; }
+      th, td { text-align: left; padding: 9px 11px; border-bottom: 1px solid var(--border); vertical-align: top; }
+      th { color: var(--text-muted); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+      td code { font-size: 12.5px; }
+      .yes { color: var(--green); font-weight: 700; }
+      .no { color: var(--text-muted); }
+
+      /* ---------- Callout ---------- */
+      .note {
+        margin-top: 14px; padding: 12px 15px; border-radius: 9px; font-size: 14px;
+        background: var(--bg-input); border: 1px solid var(--border); border-left: 3px solid var(--border-strong);
+      }
+      .note.tip { border-left-color: var(--brand); }
+      .note.warn { border-left-color: var(--yellow); }
+      .note.danger { border-left-color: var(--red); }
+      .note b { color: var(--text-strong); }
+      .note :first-child { margin-top: 0; }
+
+      /* ---------- Checklist ---------- */
+      .check { margin-top: 14px; display: flex; flex-direction: column; gap: 2px; }
+      .check label {
+        display: flex; gap: 11px; align-items: flex-start; padding: 8px 11px;
+        border-radius: 8px; cursor: pointer;
+      }
+      .check label:hover { background: var(--bg-input); }
+      .check input { margin: 5px 0 0; accent-color: var(--brand); width: 15px; height: 15px; }
+      .check input:checked + span { color: var(--text-muted); text-decoration: line-through; }
+      /* ---------- Ô nhập Client ID ---------- */
+      .idbox { margin-top: 16px; padding: 14px 15px; border-radius: 10px; background: var(--bg-input); border: 1px solid var(--border); }
+      .idbox label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+      .idbox input {
+        margin-top: 7px; width: 100%; padding: 9px 11px; border-radius: 7px;
+        background: var(--bg); border: 1px solid var(--border-strong); color: var(--text-strong);
+        font-family: var(--mono); font-size: 13.5px;
+      }
+      .idbox input:focus { border-color: var(--brand); outline: none; }
+      .invites { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+      .invites a[aria-disabled="true"] { color: var(--text-muted); pointer-events: none; }
+
+      footer {
+        margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--border);
+        font-size: 13px; color: var(--text-muted);
+      }
+
+      @media (max-width: 940px) {
+        body { flex-direction: column; gap: 0; padding: 0 18px 60px; }
+        .toc { position: static; flex: none; width: 100%; max-height: none; padding-bottom: 6px; }
+        .toc nav { flex-flow: row wrap; gap: 4px; margin-top: 12px; }
+        .toc a { border-left: none; background: var(--bg-card); border: 1px solid var(--border); }
+        main { padding-top: 12px; }
+      }
+
+      @media print {
+        .toc, .block .copy { display: none; }
+        body { display: block; background: #fff; color: #111; padding: 0; }
+        .card, .note, .block pre, table { border-color: #ccc; background: #fff; }
+        h1, h2, h3, .note b { color: #000; }
+        a { color: #06c; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <aside class="toc">
+      <div class="brand"><span class="mark">G</span><span>Cài đặt</span></div>
+      <nav id="toc-nav">
+        <a href="#tong-quan">Tổng quan</a>
+        <a href="#buoc-1">1 · Tạo bot Discord</a>
+        <a href="#buoc-2">2 · Khai redirect URI</a>
+        <a href="#buoc-3">3 · Mời bot vào server</a>
+        <a href="#buoc-4">4 · Chạy website</a>
+        <a href="#buoc-5">5 · Tài khoản admin</a>
+        <a href="#buoc-6">6 · Kiểm tra</a>
+        <a href="#su-co">Sự cố thường gặp</a>
+        <a href="#mo-ra-ngoai">Mở ra internet</a>
+        <a href="#lenh">Lệnh &amp; sao lưu</a>
+      </nav>
+    </aside>
+
+    <main>
+      <header class="hero">
+        <h1>Cài đặt Growth Toolkit</h1>
+        <p>
+          Từ con số không đến một dashboard đang chạy: tạo bot Discord, mời bot vào server với đúng
+          quyền, chạy website ở máy bạn, và cấp quyền đăng nhập cho tài khoản admin.
+        </p>
+        <div class="chips">
+          <span class="chip">khoảng <b>15 phút</b></span>
+          <span class="chip">cần <b>Node.js 23.4+</b></span>
+          <span class="chip">cần <b>quyền admin</b> ở server Discord của bạn</span>
+          <span class="chip">không cần <b>domain</b> hay <b>hosting</b></span>
+        </div>
+      </header>
+
+      <section id="tong-quan">
+        <h2>Tổng quan</h2>
+        <div class="card">
+          <p>Có ba thứ cần khớp với nhau. Thiếu một là hỏng cả luồng:</p>
+          <table>
+            <thead>
+              <tr><th>Thành phần</th><th>Là gì</th><th>Cấu hình bằng</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Bot</b></td>
+                <td>Tài khoản bot đăng nội dung và gửi DM trong Discord</td>
+                <td><code>DISCORD_TOKEN</code>, <code>HOME_GUILD_ID</code></td>
+              </tr>
+              <tr>
+                <td><b>Website</b></td>
+                <td>Dashboard chạy ở máy bạn để soạn nội dung, phát panel, xem số liệu</td>
+                <td><code>PORT</code>, <code>HOST</code>, <code>PUBLIC_BASE_URL</code></td>
+              </tr>
+              <tr>
+                <td><b>Tài khoản admin</b></td>
+                <td>Discord ID được phép đăng nhập dashboard</td>
+                <td><code>DASHBOARD_OWNER_IDS</code>, <code>SESSION_SECRET</code></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="note tip">
+            <p>
+              Cả ba đều đọc từ một file <code>.env</code> duy nhất ở thư mục dự án. Sửa file đó thì
+              <b>phải khởi động lại</b> — biến môi trường chỉ được đọc một lần lúc chạy.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="buoc-1">
+        <div class="step-head"><span class="step-no">1</span><h2>Tạo bot Discord</h2></div>
+        <div class="card">
+          <ol>
+            <li>
+              Mở <a href="https://discord.com/developers/applications" target="_blank" rel="noreferrer">Developer Portal</a>
+              → <b>New Application</b> → đặt tên (tên này hiện ra khi mời bot) → <b>Create</b>.
+            </li>
+            <li>
+              Sang tab <b>Bot</b> → <b>Reset Token</b> → <b>Copy</b>. Đây là
+              <code>DISCORD_TOKEN</code>. Token chỉ hiện đúng một lần; đóng trang là phải reset lại.
+            </li>
+            <li>
+              Vẫn ở tab <b>Bot</b>, cuộn xuống <b>Privileged Gateway Intents</b> → bật
+              <b>Server Members Intent</b> → <b>Save Changes</b>.
+            </li>
+            <li>
+              Sang tab <b>OAuth2</b> → copy <b>Client ID</b> (<code>DISCORD_CLIENT_ID</code>) và
+              <b>Client Secret</b> (<code>DISCORD_CLIENT_SECRET</code>). Chưa thấy secret thì bấm
+              <b>Reset Secret</b>.
+            </li>
+          </ol>
+          <div class="note danger">
+            <p>
+              <b>Server Members Intent là bắt buộc.</b> Không bật thì bot không nhận được sự kiện
+              có người join, nên mất toàn bộ số liệu quy nguồn invite, và cũng không đếm được ai
+              đang giữ role thông báo. Bot sẽ báo lỗi <code>Used disallowed intents</code> lúc khởi
+              động nếu code cần intent mà Portal chưa bật.
+            </p>
+          </div>
+          <div class="note">
+            <p>
+              <b>Message Content Intent không cần bật</b> — bot không đọc nội dung tin nhắn của ai.
+              Nếu chỉ bạn dùng, nên tắt <b>Public Bot</b> ở tab Bot để không ai mời bot vào server
+              khác được.
+            </p>
+          </div>
+          <div class="note warn">
+            <p>
+              Token là mật khẩu của bot. Đừng commit, đừng dán vào chat, đừng chụp màn hình có nó.
+              File <code>.env</code> đã nằm trong <code>.gitignore</code>. Lỡ lộ thì
+              <b>Reset Token</b> ngay.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="buoc-2">
+        <div class="step-head"><span class="step-no">2</span><h2>Khai redirect URI</h2></div>
+        <div class="card">
+          <p>
+            Dashboard đăng nhập bằng Discord OAuth. Discord chỉ trả người dùng về những địa chỉ đã
+            được khai trước, nên bước này không bỏ được.
+          </p>
+          <ol>
+            <li>Developer Portal → tab <b>OAuth2</b> → mục <b>Redirects</b> → <b>Add Redirect</b>.</li>
+            <li>Dán đúng chuỗi dưới đây rồi bấm <b>Save Changes</b>:</li>
+          </ol>
+          <div class="block"><pre>http://localhost:3000/api/auth/callback</pre></div>
+          <div class="note warn">
+            <p>
+              Chuỗi này bằng <code>PUBLIC_BASE_URL</code> cộng thêm
+              <code>/api/auth/callback</code>. Nó phải giống <b>từng ký tự</b>:
+            </p>
+            <ul>
+              <li>Không thừa dấu <code>/</code> ở cuối.</li>
+              <li>
+                Đổi <code>PORT</code> thì phải khai lại địa chỉ mới (ví dụ
+                <code>http://localhost:8080/api/auth/callback</code>) và sửa
+                <code>PUBLIC_BASE_URL</code> cho khớp.
+              </li>
+              <li>
+                <code>localhost</code> và <code>127.0.0.1</code> là hai chuỗi khác nhau với Discord.
+                Khai cái nào thì mở dashboard bằng đúng cái đó.
+              </li>
+            </ul>
+            <p>
+              Lệch một trong ba thứ trên là gặp <code>Invalid OAuth2 redirect_uri</code>. Lúc chạy,
+              app cũng tự cảnh báo nếu <code>PUBLIC_BASE_URL</code> và <code>PORT</code> không khớp.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="buoc-3">
+        <div class="step-head"><span class="step-no">3</span><h2>Mời bot vào server</h2></div>
+        <div class="card">
+          <p>
+            Bot cần bộ quyền khác nhau ở hai loại server: <b>server nhà</b> (server bạn muốn kéo
+            người vào) và <b>server đối tác</b> (nơi bạn được phép đăng panel).
+          </p>
+          <table>
+            <thead>
+              <tr><th>Quyền</th><th>Server nhà</th><th>Đối tác</th><th>Dùng để làm gì</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>View Channels</code></td><td class="yes">✓</td><td class="yes">✓</td><td>thấy channel để chọn khi đăng</td></tr>
+              <tr><td><code>Send Messages</code></td><td class="yes">✓</td><td class="yes">✓</td><td>đăng panel, đăng thông báo</td></tr>
+              <tr><td><code>Embed Links</code></td><td class="yes">✓</td><td class="yes">✓</td><td>gửi được embed, không bị lược thành chữ trơn</td></tr>
+              <tr><td><code>Create Invite</code></td><td class="yes">✓</td><td class="no">–</td><td>tạo invite riêng cho từng nguồn</td></tr>
+              <tr><td><code>Manage Server</code></td><td class="yes">✓</td><td class="no">–</td><td>đọc số lượt dùng invite → biết ai đến từ nguồn nào</td></tr>
+              <tr><td><code>Manage Roles</code></td><td class="yes">✓</td><td class="no">–</td><td>gán role cho người bấm nút đăng ký nhận thông báo</td></tr>
+            </tbody>
+          </table>
+          <p>
+            Cộng lại thành mã quyền <code>268454945</code> cho server nhà và <code>19456</code> cho
+            server đối tác. Dán Client ID vào đây để lấy link mời sẵn:
+          </p>
+          <div class="idbox">
+            <label for="client-id">Client ID (Developer Portal → OAuth2 → Client ID)</label>
+            <input id="client-id" inputmode="numeric" autocomplete="off" placeholder="1234567890123456789" />
+            <div class="invites">
+              <a id="invite-home" data-label="Mời vào server nhà" data-permissions="268454945" aria-disabled="true">Mời vào server nhà — chờ Client ID</a>
+              <a id="invite-partner" data-label="Mời vào server đối tác" data-permissions="19456" aria-disabled="true">Mời vào server đối tác — chờ Client ID</a>
+            </div>
+          </div>
+          <div class="note warn">
+            <p>
+              <b>Manage Roles chỉ hoạt động khi thứ tự role đúng.</b> Vào Server Settings → Roles và
+              kéo role của bot lên <b>trên</b> role thông báo. Role bot nằm dưới thì Discord từ chối
+              với lỗi <code>Missing Permissions</code> — người bấm nút vẫn vào danh sách và vẫn nhận
+              DM, chỉ là không được gán role.
+            </p>
+          </div>
+          <div class="note">
+            <p>
+              Sau khi mời, lấy <b>ID server nhà</b>: bật Developer Mode trong Discord (Settings →
+              Advanced), chuột phải tên server → <b>Copy Server ID</b>. Đó là
+              <code>HOME_GUILD_ID</code>.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="buoc-4">
+        <div class="step-head"><span class="step-no">4</span><h2>Chạy website</h2></div>
+        <div class="card">
+          <h3>Yêu cầu</h3>
+          <p>
+            Node.js <b>23.4 trở lên</b> — dự án dùng <code>node:sqlite</code> có sẵn trong Node nên
+            không cần trình biên dịch native. Kiểm tra bằng <code>node -v</code>.
+          </p>
+
+          <h3>Cài và chạy</h3>
+          <div class="block"><pre>npm install
+cp .env.example .env     # Windows: copy .env.example .env
+npm start</pre></div>
+
+          <h3>Điền .env</h3>
+          <table>
+            <thead>
+              <tr><th>Biến</th><th>Lấy ở đâu</th><th>Bắt buộc</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>DISCORD_TOKEN</code></td><td>Portal → Bot → Reset Token</td><td class="yes">✓</td></tr>
+              <tr><td><code>DISCORD_CLIENT_ID</code></td><td>Portal → OAuth2 → Client ID</td><td class="yes">✓</td></tr>
+              <tr><td><code>DISCORD_CLIENT_SECRET</code></td><td>Portal → OAuth2 → Client Secret</td><td class="yes">✓</td></tr>
+              <tr><td><code>HOME_GUILD_ID</code></td><td>chuột phải server nhà → Copy Server ID</td><td class="yes">✓</td></tr>
+              <tr><td><code>DASHBOARD_OWNER_IDS</code></td><td>Discord ID của bạn — xem bước 5</td><td class="yes">✓</td></tr>
+              <tr><td><code>SESSION_SECRET</code></td><td>chuỗi random dài: <code>openssl rand -hex 32</code></td><td class="yes">✓</td></tr>
+              <tr><td><code>PORT</code></td><td>mặc định <code>3000</code></td><td class="no">–</td></tr>
+              <tr><td><code>HOST</code></td><td>mặc định <code>127.0.0.1</code>, chỉ mở ở máy này</td><td class="no">–</td></tr>
+              <tr><td><code>PUBLIC_BASE_URL</code></td><td>địa chỉ bạn mở dashboard, phải khớp redirect URI</td><td class="no">–</td></tr>
+              <tr><td><code>DM_INTERVAL_MS</code></td><td>giãn nhịp giữa 2 DM, mặc định <code>2500</code></td><td class="no">–</td></tr>
+              <tr><td><code>DATABASE_FILE</code></td><td>mặc định <code>data/growth.db</code></td><td class="no">–</td></tr>
+            </tbody>
+          </table>
+          <div class="note">
+            <p>
+              Thiếu biến bắt buộc thì app in ra danh sách <b>tất cả</b> chỗ còn thiếu kèm cách lấy
+              rồi thoát, không phải chạy lại từng lần để lộ lỗi tiếp.
+            </p>
+          </div>
+
+          <h3>Chạy đúng thì thấy gì</h3>
+          <div class="block"><pre>[bot] Đăng nhập với GrowthBot#4821
+[bot] Theo dõi invite của Server Của Bạn (128 member)
+[web] Dashboard: http://127.0.0.1:3000
+
+  ✔ Growth Toolkit đã chạy
+
+    Dashboard    http://localhost:3000
+    Bot          GrowthBot#4821 · 2 server
+    Server nhà   Server Của Bạn (128 member)
+    Đăng nhập    1 Discord ID trong DASHBOARD_OWNER_IDS
+    Gửi DM       mỗi 2.5s một tin
+    Dữ liệu      data/growth.db</pre></div>
+          <p>
+            Nếu bot thiếu quyền nào ở server nhà, khối này liệt kê ra ngay kèm hậu quả. Mở
+            <a href="http://localhost:3000">http://localhost:3000</a> để vào dashboard.
+          </p>
+        </div>
+      </section>
+
+      <section id="buoc-5">
+        <div class="step-head"><span class="step-no">5</span><h2>Tài khoản admin</h2></div>
+        <div class="card">
+          <p>
+            Dashboard không có mật khẩu riêng. Nó đăng nhập bằng Discord, và chỉ những Discord ID
+            khai trong <code>DASHBOARD_OWNER_IDS</code> mới vào được.
+          </p>
+          <ol>
+            <li>Trong Discord: <b>Settings → Advanced → Developer Mode</b> → bật.</li>
+            <li>Chuột phải avatar của bạn (ở đâu cũng được) → <b>Copy User ID</b>.</li>
+            <li>Dán vào <code>.env</code>. Nhiều người thì cách nhau bằng dấu phẩy, <b>không có dấu cách</b>:</li>
+          </ol>
+          <div class="block"><pre>DASHBOARD_OWNER_IDS=123456789012345678,987654321098765432</pre></div>
+          <ol start="4">
+            <li>Khởi động lại bằng <code>npm start</code>.</li>
+            <li>Mở dashboard → <b>Đăng nhập với Discord</b> → <b>Authorize</b>.</li>
+          </ol>
+          <div class="note tip">
+            <p>
+              App chỉ xin quyền <code>identify</code> — đọc tên, ID và avatar của bạn. Nó không đọc
+              email, không đọc tin nhắn, không vào server thay bạn.
+            </p>
+          </div>
+          <div class="note">
+            <p>
+              Đăng nhập bằng tài khoản chưa được khai thì bạn nhận đúng một trang báo lỗi có sẵn ID
+              cần thêm và bốn bước để sửa — không cần đoán.
+            </p>
+          </div>
+
+          <h3>Phiên đăng nhập hoạt động thế nào</h3>
+          <table>
+            <thead><tr><th>Việc</th><th>Cách làm</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Phiên lưu ở đâu</td>
+                <td>
+                  Cookie <code>growth_session</code>, <code>HttpOnly</code>,
+                  <code>SameSite=Lax</code>, ký HMAC-SHA256 bằng <code>SESSION_SECRET</code>, hạn 7
+                  ngày. Cờ <code>Secure</code> tự bật khi <code>PUBLIC_BASE_URL</code> là
+                  <code>https://</code>. Server không lưu gì, cookie sửa tay là bị từ chối.
+                </td>
+              </tr>
+              <tr>
+                <td>Thêm admin</td>
+                <td>Thêm ID vào <code>DASHBOARD_OWNER_IDS</code> → khởi động lại.</td>
+              </tr>
+              <tr>
+                <td>Thu hồi quyền của một người</td>
+                <td>
+                  Xoá ID khỏi <code>DASHBOARD_OWNER_IDS</code> → khởi động lại. Mất quyền
+                  <b>ngay lập tức</b> dù cookie còn hạn, vì mỗi request đều kiểm tra lại danh sách.
+                </td>
+              </tr>
+              <tr>
+                <td>Đăng xuất tất cả mọi người</td>
+                <td>Đổi <code>SESSION_SECRET</code> → khởi động lại. Mọi cookie cũ thành vô hiệu.</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="note danger">
+            <p>
+              <b>Ai đăng nhập được dashboard là gửi được tin nhân danh bot của bạn</b> — đăng vào
+              channel, gửi DM cho người đã đăng ký. Chỉ khai ID của người bạn thật sự tin. Đây cũng
+              là lý do <code>HOST</code> mặc định chỉ nghe <code>127.0.0.1</code>.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="buoc-6">
+        <div class="step-head"><span class="step-no">6</span><h2>Kiểm tra</h2></div>
+        <div class="card">
+          <p>Tick từng dòng. Trạng thái được lưu lại trong trình duyệt này.</p>
+          <div class="check" id="checklist">
+            <label><input type="checkbox" data-key="c1" /><span>Sidebar hiện đèn xanh kèm số server, không phải "bot chưa online".</span></label>
+            <label><input type="checkbox" data-key="c2" /><span>Sidebar <b>không</b> hiện "thiếu quyền invite" (nếu có: bot chưa có Manage Server).</span></label>
+            <label><input type="checkbox" data-key="c3" /><span><b>Nguồn &amp; invite</b> → tạo nguồn <code>test-nguon</code> → thấy invite code sinh ra.</span></label>
+            <label><input type="checkbox" data-key="c4" /><span><b>Soạn nội dung</b> → tạo template loại <code>dm</code> → <b>Gửi thử vào DM của tôi</b> → nhận được tin.</span></label>
+            <label><input type="checkbox" data-key="c5" /><span><b>Thông báo</b> → chọn role thông báo → <b>Lưu role</b> → không báo lỗi.</span></label>
+            <label><input type="checkbox" data-key="c6" /><span>Tạo template <code>panel</code> có nút opt-in → đăng vào một channel test → bấm nút → nhận DM.</span></label>
+            <label><input type="checkbox" data-key="c7" /><span><b>Thống kê</b> → tab hiện ra được, kể cả khi chưa có dữ liệu.</span></label>
+          </div>
+          <div class="note tip">
+            <p>
+              Xong hết là cài đúng. Bước tiếp theo là quy trình dùng hằng ngày —
+              xem phần "Quy trình dùng" trong <code>README.md</code>.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="su-co">
+        <h2>Sự cố thường gặp</h2>
+        <div class="card">
+          <table>
+            <thead><tr><th>Hiện tượng</th><th>Nguyên nhân</th><th>Cách sửa</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>Invalid OAuth2 redirect_uri</code></td>
+                <td>Redirect chưa khai, hoặc lệch cổng / thừa dấu <code>/</code> / dùng
+                  <code>127.0.0.1</code> trong khi khai <code>localhost</code></td>
+                <td>Khai lại ở Portal cho khớp <code>PUBLIC_BASE_URL</code> — xem bước 2</td>
+              </tr>
+              <tr>
+                <td>Trang "Tài khoản chưa được cấp quyền"</td>
+                <td>ID chưa có trong <code>DASHBOARD_OWNER_IDS</code></td>
+                <td>Trang đó in sẵn ID cần thêm; thêm vào <code>.env</code> rồi khởi động lại</td>
+              </tr>
+              <tr>
+                <td>Console: "Chưa chạy được — cấu hình còn thiếu"</td>
+                <td>Thiếu biến bắt buộc trong <code>.env</code></td>
+                <td>Điền theo đúng danh sách in ra rồi chạy lại</td>
+              </tr>
+              <tr>
+                <td><code>Used disallowed intents</code></td>
+                <td>Server Members Intent chưa bật ở Portal</td>
+                <td>Bot → Privileged Gateway Intents → bật → Save → chạy lại</td>
+              </tr>
+              <tr>
+                <td>Sidebar: "chưa ở trong server nhà"</td>
+                <td><code>HOME_GUILD_ID</code> sai, hoặc bot chưa được mời vào server đó</td>
+                <td>Copy lại Server ID, mời bot bằng link ở bước 3</td>
+              </tr>
+              <tr>
+                <td>Số liệu nguồn trống dù có người join</td>
+                <td>Thiếu <code>Manage Server</code> nên không đọc được lượt dùng invite</td>
+                <td>Cấp quyền rồi khởi động lại; join trước đó không truy lại được</td>
+              </tr>
+              <tr>
+                <td>DM ghi <code>blocked_dm</code></td>
+                <td>Người nhận tắt DM từ thành viên server (lỗi Discord 50007)</td>
+                <td>Không sửa được từ phía bot — Discord không cho biết trước ai đang mở DM</td>
+              </tr>
+              <tr>
+                <td>Người đăng ký không được gán role</td>
+                <td>Thiếu <code>Manage Roles</code>, hoặc role thông báo nằm trên role của bot</td>
+                <td>Cấp quyền và kéo role bot lên trên trong Server Settings → Roles</td>
+              </tr>
+              <tr>
+                <td><code>Opening handshake has timed out</code></td>
+                <td>Mạng chập chờn lúc kết nối gateway</td>
+                <td>Không phải lỗi cấu hình; bot ghi log rồi tự kết nối lại, process không chết</td>
+              </tr>
+              <tr>
+                <td><code>EADDRINUSE</code></td>
+                <td>Cổng <code>3000</code> đang bị chương trình khác chiếm</td>
+                <td>Đổi <code>PORT</code>, sửa <code>PUBLIC_BASE_URL</code>, khai lại redirect URI</td>
+              </tr>
+              <tr>
+                <td>Tin gửi ra chỉ có nút, mất chữ</td>
+                <td>Bật Components V2 nhưng nội dung còn nằm ở khung embed cũ — Discord bỏ qua
+                  <code>content</code> và <code>embeds</code> khi có cờ V2</td>
+                <td>Bấm "Chuyển nội dung cũ sang V2" trong composer; dashboard cũng chặn gửi
+                  trường hợp này</td>
+              </tr>
+              <tr>
+                <td>Webhook không gửi được Components V2</td>
+                <td>Discord không cho webhook thường gửi component</td>
+                <td>Đăng bằng bot vào channel thay vì webhook</td>
+              </tr>
+              <tr>
+                <td>Không đổi tin V2 về lại embed</td>
+                <td>Discord không cho hạ cờ V2 khi sửa tin</td>
+                <td>Đăng một tin mới</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section id="mo-ra-ngoai">
+        <h2>Mở ra internet</h2>
+        <div class="card">
+          <p>
+            Mặc định dashboard chỉ nghe <code>127.0.0.1</code> nên chỉ máy bạn vào được. Đó là lựa
+            chọn có chủ ý: dashboard gửi tin nhân danh bot. Nếu vẫn cần mở ra ngoài:
+          </p>
+          <ol>
+            <li>Đặt HTTPS + reverse proxy (Caddy, nginx, Cloudflare Tunnel) trước app.</li>
+            <li>Đặt <code>HOST=0.0.0.0</code> để app nhận kết nối từ proxy.</li>
+            <li>Đặt <code>PUBLIC_BASE_URL</code> thành domain thật, có <code>https://</code>.</li>
+            <li>Khai thêm redirect URI mới ở Developer Portal: <code>https://domain-cua-ban/api/auth/callback</code>.</li>
+          </ol>
+          <div class="note danger">
+            <p>
+              <b>Đừng mở cổng 3000 trần ra internet.</b> Không có HTTPS thì session cookie đi ở dạng
+              không mã hoá; ai lấy được cookie đó là điều khiển được bot của bạn. App cũng tự cảnh
+              báo khi <code>PUBLIC_BASE_URL</code> là <code>http://</code> trên domain ngoài.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="lenh">
+        <h2>Lệnh &amp; sao lưu</h2>
+        <div class="card">
+          <div class="block"><pre>npm start        # chạy bot + dashboard
+npm run dev      # chạy với watch, tự khởi động lại khi sửa code
+npm test         # bộ test
+npm run typecheck</pre></div>
+          <div class="note warn">
+            <p>
+              <b>Sao lưu <code>data/growth.db</code> trước khi cập nhật code.</b> File đó chứa
+              template, danh sách người đăng ký nhận thông báo, lịch sử đợt gửi và toàn bộ log join
+              — mất là không dựng lại được. Chỉ cần copy file khi app đang tắt.
+            </p>
+          </div>
+          <p>
+            <code>.env</code> và <code>data/</code> đã nằm trong <code>.gitignore</code>. Đừng đưa
+            chúng lên git.
+          </p>
+        </div>
+      </section>
+
+      <footer>
+        Growth Toolkit · hướng dẫn này đi kèm code trong repo, mở trực tiếp bằng trình duyệt
+        (<code>docs/setup-guide.html</code>). Quy trình dùng hằng ngày: xem <code>README.md</code>.
+      </footer>
+    </main>
+
+    <script>
+      // Trang này mở bằng file:// nên localStorage có thể bị chặn — mọi truy cập
+      // đều bọc try/catch, hỏng thì chỉ mất phần ghi nhớ, nội dung vẫn dùng được.
+      const KEY = 'growth-setup-guide';
+
+      function load(name, fallback) {
+        try {
+          const raw = localStorage.getItem(`${KEY}:${name}`);
+          return raw === null ? fallback : JSON.parse(raw);
+        } catch {
+          return fallback;
+        }
+      }
+
+      function save(name, value) {
+        try {
+          localStorage.setItem(`${KEY}:${name}`, JSON.stringify(value));
+        } catch {
+          /* bỏ qua */
+        }
+      }
+
+      /** Clipboard API cần secure context, file:// thì không có — bôi đen sẵn để Ctrl+C. */
+      function selectText(node) {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const selection = getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      for (const block of document.querySelectorAll('.block')) {
+        const pre = block.querySelector('pre');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'copy';
+        button.textContent = 'Copy';
+
+        button.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(pre.textContent);
+            button.textContent = 'Đã copy';
+          } catch {
+            selectText(pre);
+            button.textContent = 'Ctrl+C';
+          }
+          button.classList.add('done');
+          setTimeout(() => {
+            button.textContent = 'Copy';
+            button.classList.remove('done');
+          }, 1600);
+        });
+
+        block.append(button);
+      }
+
+      const clientIdInput = document.getElementById('client-id');
+
+      if (clientIdInput) {
+        const inviteLinks = [
+          document.getElementById('invite-home'),
+          document.getElementById('invite-partner'),
+        ].filter(Boolean);
+
+        const renderInvites = () => {
+          const id = clientIdInput.value.trim();
+          const valid = /^\d{15,25}$/.test(id);
+
+          for (const link of inviteLinks) {
+            const label = link.dataset.label;
+            if (!valid) {
+              link.removeAttribute('href');
+              link.setAttribute('aria-disabled', 'true');
+              link.textContent = `${label} — chờ Client ID`;
+              continue;
+            }
+            link.href =
+              'https://discord.com/oauth2/authorize' +
+              `?client_id=${id}&scope=bot&permissions=${link.dataset.permissions}&integration_type=0`;
+            link.target = '_blank';
+            link.rel = 'noreferrer';
+            link.removeAttribute('aria-disabled');
+            link.textContent = `${label} ↗`;
+          }
+        };
+
+        clientIdInput.value = load('client-id', '');
+        clientIdInput.addEventListener('input', () => {
+          save('client-id', clientIdInput.value.trim());
+          renderInvites();
+        });
+        renderInvites();
+      }
+
+      for (const box of document.querySelectorAll('#checklist input')) {
+        box.checked = load(`check:${box.dataset.key}`, false) === true;
+        box.addEventListener('change', () => save(`check:${box.dataset.key}`, box.checked));
+      }
+
+      const tocLinks = [...document.querySelectorAll('#toc-nav a')];
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            for (const link of tocLinks) link.classList.toggle('active', link.hash === `#${entry.target.id}`);
+          }
+        },
+        { rootMargin: '-12% 0px -70% 0px' },
+      );
+
+      for (const link of tocLinks) {
+        const section = document.querySelector(link.hash);
+        if (section) observer.observe(section);
+      }
+    </script>
+  </body>
+</html>

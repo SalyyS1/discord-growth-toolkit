@@ -1,19 +1,34 @@
 import { api } from '../api-client.js';
 import { card, el, field, selectInput, textInput, toast } from '../dom-helpers.js';
+import { loadState, saveState } from '../local-store.js';
+
+const TARGET_KEY = 'send-target';
 
 /**
  * Khu vực gửi: chọn server/channel của bot, hoặc webhook, hoặc gửi thử vào DM.
  * getPayload() trả về bản đang sửa để gửi đúng thứ đang thấy trong preview.
+ * Server/channel chọn lần trước được nhớ lại để khỏi phải chọn đi chọn lại.
  */
 export function createSendPanel(getPayload, getTemplateId, getIncludeOptIn) {
-  const state = { guildId: '', channelId: '', webhookUrl: '', messageId: '' };
+  const saved = loadState(TARGET_KEY, {});
+  const state = {
+    guildId: saved.guildId ?? '',
+    channelId: saved.channelId ?? '',
+    webhookUrl: '',
+    messageId: '',
+  };
   const channelHolder = el('div', {});
   const statusLine = el('div', { class: 'muted' });
+
+  function rememberTarget() {
+    saveState(TARGET_KEY, { guildId: state.guildId, channelId: state.channelId });
+  }
 
   const guildSelect = el('select', {
     onChange: async (event) => {
       state.guildId = event.target.value;
       state.channelId = '';
+      rememberTarget();
       await loadChannels();
     },
   }, [el('option', { value: '' }, 'Đang tải…')]);
@@ -25,6 +40,10 @@ export function createSendPanel(getPayload, getTemplateId, getIncludeOptIn) {
       const data = await api.getGuild(state.guildId);
       const sendable = data.channels.filter((channel) => channel.canSend);
       const blocked = data.channels.length - sendable.length;
+      // Channel đã nhớ có thể bị xoá hoặc mất quyền từ lần trước.
+      if (state.channelId && !sendable.some((channel) => channel.id === state.channelId)) {
+        state.channelId = '';
+      }
       channelHolder.append(
         field(
           'Channel',
@@ -36,6 +55,7 @@ export function createSendPanel(getPayload, getTemplateId, getIncludeOptIn) {
             state.channelId,
             (value) => {
               state.channelId = value;
+              rememberTarget();
             },
           ),
           blocked > 0 ? `${blocked} channel bị ẩn vì bot không có quyền gửi.` : undefined,
@@ -55,6 +75,13 @@ export function createSendPanel(getPayload, getTemplateId, getIncludeOptIn) {
           el('option', { value: guild.id }, `${guild.name}${guild.isHome ? ' · nhà' : ''}`),
         ),
       );
+
+      if (state.guildId && data.guilds.some((guild) => guild.id === state.guildId)) {
+        guildSelect.value = state.guildId;
+        await loadChannels();
+      } else {
+        state.guildId = '';
+      }
     } catch (error) {
       toast(`Không tải được danh sách server: ${error.message}`, 'bad');
     }
@@ -150,6 +177,10 @@ export function createSendPanel(getPayload, getTemplateId, getIncludeOptIn) {
     onClick: async () => {
       if (!state.webhookUrl) {
         toast('Dán webhook URL trước.', 'bad');
+        return;
+      }
+      if (getPayload().useComponentsV2) {
+        toast('Components V2 không gửi được qua webhook — dùng "Đăng lên channel".', 'bad');
         return;
       }
       const result = await run('Gửi webhook', () =>

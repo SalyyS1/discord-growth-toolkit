@@ -1,5 +1,6 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import { env, isOwner, oauthRedirectUri } from '../../config/env';
+import { renderAuthErrorPage, type AuthErrorPageInput } from '../auth-error-page';
 import {
   clearSessionCookie,
   consumeOauthState,
@@ -46,6 +47,10 @@ async function fetchDiscordUser(accessToken: string): Promise<DiscordUser> {
 
 export const authRoutes = Router();
 
+function sendAuthError(response: Response, page: AuthErrorPageInput): void {
+  response.status(page.status).type('html').send(renderAuthErrorPage(page));
+}
+
 authRoutes.get('/login', (request, response) => {
   const state = issueOauthState(response);
   const url = new URL('https://discord.com/oauth2/authorize');
@@ -63,11 +68,27 @@ authRoutes.get('/callback', async (request, response) => {
   const state = typeof request.query.state === 'string' ? request.query.state : '';
 
   if (!consumeOauthState(request, response, state)) {
-    response.status(400).send('State không khớp, thử đăng nhập lại.');
+    sendAuthError(response, {
+      status: 400,
+      title: 'Link đăng nhập không còn hợp lệ',
+      message:
+        'Mã chống giả mạo (state) trong cookie không khớp với mã Discord trả về. Thường là vì link đăng nhập đã mở quá 10 phút, hoặc bạn bắt đầu đăng nhập ở một tab/trình duyệt khác.',
+      steps: [
+        'Bấm "Thử đăng nhập lại" bên dưới và hoàn tất trong cùng một tab.',
+        'Nếu vẫn lỗi: kiểm tra trình duyệt có đang chặn cookie của localhost không.',
+        'Truy cập dashboard đúng địa chỉ khai trong PUBLIC_BASE_URL — vào bằng 127.0.0.1 trong khi khai localhost sẽ làm mất cookie.',
+      ],
+      retryHref: '/api/auth/login',
+    });
     return;
   }
   if (!code) {
-    response.status(400).send('Thiếu code.');
+    sendAuthError(response, {
+      status: 400,
+      title: 'Discord không trả về mã đăng nhập',
+      message: 'Thiếu tham số code, thường là do bạn bấm "Cancel" ở trang cấp quyền của Discord.',
+      retryHref: '/api/auth/login',
+    });
     return;
   }
 
@@ -76,9 +97,19 @@ authRoutes.get('/callback', async (request, response) => {
     const user = await fetchDiscordUser(accessToken);
 
     if (!isOwner(user.id)) {
-      response
-        .status(403)
-        .send(`Tài khoản ${user.username} (${user.id}) không có trong DASHBOARD_OWNER_IDS.`);
+      sendAuthError(response, {
+        status: 403,
+        title: 'Tài khoản chưa được cấp quyền',
+        message: `Bạn đăng nhập bằng ${user.username} (ID ${user.id}), nhưng ID này không có trong DASHBOARD_OWNER_IDS nên không vào được dashboard.`,
+        steps: [
+          'Mở file .env ở thư mục dự án.',
+          'Thêm ID trên vào DASHBOARD_OWNER_IDS (nhiều người thì cách nhau bằng dấu phẩy, không có dấu cách).',
+          'Khởi động lại bằng npm start — biến môi trường chỉ được đọc lúc chạy.',
+          'Đăng nhập lại.',
+        ],
+        snippet: `DASHBOARD_OWNER_IDS=${user.id}`,
+        retryHref: '/api/auth/login',
+      });
       return;
     }
 
@@ -90,7 +121,37 @@ authRoutes.get('/callback', async (request, response) => {
     response.redirect('/');
   } catch (error) {
     console.error('[web] OAuth lỗi:', error);
-    response.status(500).send('Đăng nhập thất bại, xem log server.');
+    const detail = error instanceof Error ? error.message : String(error);
+
+    // Lỗi hay gặp nhất khi mới cài: redirect URI khai ở Portal khác PUBLIC_BASE_URL.
+    if (/redirect_uri/i.test(detail)) {
+      sendAuthError(response, {
+        status: 500,
+        title: 'Redirect URI không khớp',
+        message:
+          'Discord từ chối đổi mã đăng nhập vì địa chỉ callback mà app gửi lên chưa được khai ở Developer Portal.',
+        steps: [
+          'Mở Developer Portal → app của bạn → OAuth2 → Redirects.',
+          'Thêm đúng chuỗi bên dưới, giống từng ký tự và không thừa dấu / ở cuối, rồi bấm Save Changes.',
+          'Muốn dùng địa chỉ khác thì sửa PUBLIC_BASE_URL trong .env cho khớp rồi khởi động lại.',
+        ],
+        snippet: oauthRedirectUri,
+        retryHref: '/api/auth/login',
+      });
+      return;
+    }
+
+    sendAuthError(response, {
+      status: 500,
+      title: 'Đăng nhập thất bại',
+      message:
+        'Không đổi được mã đăng nhập với Discord. Chi tiết lỗi đã ghi vào log của cửa sổ đang chạy npm start.',
+      steps: [
+        'Kiểm tra DISCORD_CLIENT_ID và DISCORD_CLIENT_SECRET trong .env — secret bị reset ở Developer Portal thì phải điền lại.',
+        'Kiểm tra máy có kết nối được tới discord.com.',
+      ],
+      retryHref: '/api/auth/login',
+    });
   }
 });
 

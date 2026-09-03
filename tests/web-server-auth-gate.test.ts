@@ -15,6 +15,7 @@ process.env.PORT = '34567';
 process.env.HOST = '127.0.0.1';
 
 const { startWebServer } = await import('../src/web/web-server');
+const { escapeHtml, renderAuthErrorPage } = await import('../src/web/auth-error-page');
 
 const server = startWebServer();
 const base = 'http://127.0.0.1:34567';
@@ -55,6 +56,8 @@ test('mọi API dữ liệu đều chặn khi chưa đăng nhập', async () => 
     '/api/invite-sources',
     '/api/analytics/overview',
     '/api/publish/history',
+    '/api/notify',
+    '/api/notify/subscribers',
   ]) {
     const response = await fetch(`${base}${path}`);
     assert.equal(response.status, 401, `${path} phải trả 401`);
@@ -84,4 +87,32 @@ test('login chuyển hướng sang Discord OAuth kèm state', async () => {
   assert.match(location, /^https:\/\/discord\.com\/oauth2\/authorize/);
   assert.match(location, /state=/);
   assert.match(response.headers.get('set-cookie') ?? '', /growth_oauth_state=/);
+});
+
+test('callback sai state trả trang HTML 400 kèm cách sửa', async () => {
+  const response = await fetch(`${base}/api/auth/callback?code=x&state=khong-khop`);
+  assert.equal(response.status, 400);
+  assert.match(response.headers.get('content-type') ?? '', /text\/html/);
+
+  const html = await response.text();
+  assert.match(html, /<!doctype html>/i);
+  assert.match(html, /state/);
+  assert.match(html, /api\/auth\/login/, 'phải có link thử lại');
+});
+
+test('trang lỗi escape mọi giá trị vì .send() trả về text/html', () => {
+  assert.equal(escapeHtml('<script>a&b"c\'d'), '&lt;script&gt;a&amp;b&quot;c&#39;d');
+
+  // Tên Discord của bất kỳ ai bấm đăng nhập đều lọt vào trang 403 này.
+  const html = renderAuthErrorPage({
+    status: 403,
+    title: 'x',
+    message: 'Tài khoản <img src=x onerror=alert(1)> bị chặn',
+    steps: ['bước <b>một</b>'],
+    snippet: 'DASHBOARD_OWNER_IDS=<script>',
+    retryHref: '/api/auth/login',
+  });
+  assert.ok(!html.includes('<img src=x'), 'không được nhúng thẻ thô vào trang');
+  assert.ok(!html.includes('<b>một</b>'));
+  assert.match(html, /&lt;script&gt;/);
 });

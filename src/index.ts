@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { envFileExists, findEnvProblems } from './config/check-env';
+import { envFileExists, findEnvProblems, findEnvWarnings } from './config/check-env';
 
 /**
  * Cổng vào: kiểm tra cấu hình trước khi nạp phần còn lại của app, để lỗi thiếu
@@ -16,8 +16,15 @@ if (problems.length > 0) {
     console.error('     cp .env.example .env');
   }
 
-  console.error('\n  Chi tiết từng bước: xem phần "Cài đặt" trong README.md\n');
+  console.error('\n  Chi tiết từng bước: mở docs/setup-guide.html\n');
   process.exit(1);
+}
+
+const warnings = findEnvWarnings();
+if (warnings.length > 0) {
+  console.warn('\n  Chạy được, nhưng cấu hình có điểm đáng sửa:');
+  for (const warning of warnings) console.warn(`   ! ${warning}`);
+  console.warn('');
 }
 
 const { boot } = await import('./app-boot');

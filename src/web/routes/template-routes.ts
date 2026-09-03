@@ -7,6 +7,7 @@ import {
   updateTemplate,
 } from '../../db/repo-content';
 import { validateTemplatePayload } from '../../shared/template-validation';
+import { layoutFromClassic } from '../../shared/template-v2-migration';
 import { createEmptyPayload, PLACEHOLDERS, type TemplateKind } from '../../shared/template-types';
 
 const VALID_KINDS: TemplateKind[] = ['announcement', 'panel', 'dm', 'welcome'];
@@ -82,4 +83,17 @@ templateRoutes.post('/validate', (request, response) => {
     return;
   }
   response.json({ issues: validateTemplatePayload(payload as ReturnType<typeof createEmptyPayload>) });
+});
+
+/**
+ * Chuyển text + embed hiện có thành khối Components V2. Composer gọi khi bật V2
+ * để nội dung đang soạn không bị bỏ lại ở chỗ Discord không đọc.
+ */
+templateRoutes.post('/to-components-v2', (request, response) => {
+  const payload = (request.body as { payload?: unknown }).payload;
+  if (!payload || typeof payload !== 'object') {
+    response.status(400).json({ error: 'Thiếu payload' });
+    return;
+  }
+  response.json({ v2: layoutFromClassic(payload as ReturnType<typeof createEmptyPayload>) });
 });

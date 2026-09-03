@@ -1,5 +1,6 @@
 import { el } from './dom-helpers.js';
 import { renderInline, renderMarkdown } from './discord-markdown.js';
+import { renderComponentsV2 } from './discord-components-v2-preview.js';
 
 const BUTTON_STYLE_CLASS = { primary: 'primary', success: 'success', secondary: '' };
 
@@ -122,19 +123,6 @@ export function renderMessagePreview(payload, options = {}) {
     ]),
   ]);
 
-  if (payload.content?.trim()) {
-    body.append(el('div', { class: 'dc-content', html: renderMarkdown(applyPlaceholders(payload.content, context)) }));
-  }
-
-  for (const spec of payload.embeds ?? []) {
-    const hasContent =
-      spec.title?.trim() ||
-      spec.description?.trim() ||
-      spec.imageUrl?.trim() ||
-      (spec.fields ?? []).some((item) => item.name?.trim() && item.value?.trim());
-    if (hasContent) body.append(embedNode(spec, context));
-  }
-
   const buttons = [];
   for (const button of payload.linkButtons ?? []) {
     if (!button.label?.trim() && !button.emoji?.trim()) continue;
@@ -149,7 +137,35 @@ export function renderMessagePreview(payload, options = {}) {
       ),
     );
   }
-  if (buttons.length > 0) body.append(el('div', { class: 'dc-buttons' }, buttons));
+  const buttonsRow = buttons.length > 0 ? el('div', { class: 'dc-buttons' }, buttons) : null;
+
+  if (payload.useComponentsV2) {
+    // Components V2: Discord bỏ qua content + embed, chỉ render component.
+    body.append(
+      renderComponentsV2(payload, {
+        fill: (value) => applyPlaceholders(value, context),
+        makeButton: buttonNode,
+        buttonsRow,
+      }),
+    );
+  } else {
+    if (payload.content?.trim()) {
+      body.append(
+        el('div', { class: 'dc-content', html: renderMarkdown(applyPlaceholders(payload.content, context)) }),
+      );
+    }
+
+    for (const spec of payload.embeds ?? []) {
+      const hasContent =
+        spec.title?.trim() ||
+        spec.description?.trim() ||
+        spec.imageUrl?.trim() ||
+        (spec.fields ?? []).some((item) => item.name?.trim() && item.value?.trim());
+      if (hasContent) body.append(embedNode(spec, context));
+    }
+
+    if (buttonsRow) body.append(buttonsRow);
+  }
 
   const avatarInitial = botName.slice(0, 1).toUpperCase();
   return el('div', { class: 'dc-preview' }, [

@@ -1,58 +1,31 @@
 import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   EmbedBuilder,
-  type APIMessageComponentEmoji,
+  MessageFlags,
   type MessageCreateOptions,
 } from 'discord.js';
+import { buildComponentsV2Payload } from './template-components-v2-builder';
+import {
+  applyPlaceholders,
+  buildButtonRow,
+  buildNotifyOptOutRow,
+  clean,
+  fill,
+  parseColor,
+  type BuildOptions,
+} from './template-build-helpers';
 import type { EmbedSpec, PlaceholderContext, TemplatePayload } from './template-types';
 
-export const OPT_IN_CUSTOM_ID = 'growth:opt-in';
-
-const BUTTON_STYLES = {
-  primary: ButtonStyle.Primary,
-  success: ButtonStyle.Success,
-  secondary: ButtonStyle.Secondary,
-} as const;
-
-/** Chuỗi rỗng phải thành undefined vì Discord từ chối field rỗng. */
-function clean(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : undefined;
-}
-
-/** Tách <:name:id>, <a:name:id> hoặc emoji unicode thành object cho component. */
-export function parseComponentEmoji(raw: string | undefined): APIMessageComponentEmoji | undefined {
-  const value = clean(raw);
-  if (!value) return undefined;
-  const custom = /^<(a?):([\w~]+):(\d+)>$/.exec(value);
-  if (custom) {
-    return { animated: custom[1] === 'a', name: custom[2]!, id: custom[3]! };
-  }
-  return { name: value };
-}
-
-export function applyPlaceholders(text: string, context: PlaceholderContext): string {
-  return text
-    .replaceAll('{user}', context.userMention ?? context.userName ?? 'bạn')
-    .replaceAll('{user.name}', context.userName ?? 'bạn')
-    .replaceAll('{user.id}', context.userId ?? '')
-    .replaceAll('{server}', context.serverName ?? '')
-    .replaceAll('{members}', context.memberCount !== undefined ? String(context.memberCount) : '')
-    .replaceAll('{invite}', context.inviteUrl ?? '')
-    .replaceAll('{source}', context.sourceLabel ?? '');
-}
-
-function fill(value: string | undefined, context: PlaceholderContext): string | undefined {
-  const cleaned = clean(value);
-  return cleaned ? applyPlaceholders(cleaned, context) : undefined;
-}
-
-function parseColor(hex: string | undefined): number | undefined {
-  if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return undefined;
-  return Number.parseInt(hex.slice(1), 16);
-}
+// Giữ nguyên đường import cũ cho phần còn lại của code.
+export {
+  applyPlaceholders,
+  buildNotifyOptOutRow,
+  parseComponentEmoji,
+  NOTIFY_SUBSCRIBE_CUSTOM_ID,
+  NOTIFY_UNSUBSCRIBE_CUSTOM_ID,
+  NOTIFY_UNSUBSCRIBE_LABEL,
+  OPT_IN_CUSTOM_ID,
+  type BuildOptions,
+} from './template-build-helpers';
 
 function buildEmbed(spec: EmbedSpec, context: PlaceholderContext): EmbedBuilder | null {
   const embed = new EmbedBuilder();
@@ -93,54 +66,31 @@ function buildEmbed(spec: EmbedSpec, context: PlaceholderContext): EmbedBuilder 
   return isEmpty ? null : embed;
 }
 
-export interface BuildOptions {
-  /** panel mới cần nút opt-in; DM/announcement thì bỏ. */
-  includeOptIn?: boolean;
-}
-
 export function buildMessagePayload(
   payload: TemplatePayload,
   context: PlaceholderContext,
   options: BuildOptions = {},
 ): MessageCreateOptions {
+  if (payload.useComponentsV2) return buildComponentsV2Payload(payload, context, options);
+
   const embeds = payload.embeds
     .map((spec) => buildEmbed(spec, context))
     .filter((embed): embed is EmbedBuilder => embed !== null);
 
-  const row = new ActionRowBuilder<ButtonBuilder>();
-  let buttonCount = 0;
-
-  for (const spec of payload.linkButtons) {
-    const url = fill(spec.url, context);
-    if (!url || !/^https?:\/\//.test(url)) continue;
-    const button = new ButtonBuilder().setStyle(ButtonStyle.Link).setURL(url);
-    const label = fill(spec.label, context);
-    const emoji = parseComponentEmoji(spec.emoji);
-    if (label) button.setLabel(label);
-    if (emoji) button.setEmoji(emoji);
-    if (!label && !emoji) continue;
-    row.addComponents(button);
-    buttonCount += 1;
-  }
-
-  if (options.includeOptIn && payload.optInButton) {
-    const spec = payload.optInButton;
-    const button = new ButtonBuilder()
-      .setCustomId(OPT_IN_CUSTOM_ID)
-      .setStyle(BUTTON_STYLES[spec.style] ?? ButtonStyle.Primary);
-    const label = fill(spec.label, context) ?? 'Nhận thông tin';
-    button.setLabel(label);
-    const emoji = parseComponentEmoji(spec.emoji);
-    if (emoji) button.setEmoji(emoji);
-    row.addComponents(button);
-    buttonCount += 1;
-  }
+  const row = buildButtonRow(payload, context, options.includeOptIn === true);
+  const rows = row ? [row] : [];
+  if (options.includeNotifyOptOut) rows.push(buildNotifyOptOutRow());
 
   return {
     content: fill(payload.content, context),
     embeds,
-    components: buttonCount > 0 ? [row] : [],
+    components: rows,
   };
+}
+
+function toJson(component: unknown): unknown {
+  const encodable = component as { toJSON?: () => unknown };
+  return typeof encodable.toJSON === 'function' ? encodable.toJSON() : component;
 }
 
 /** Webhook gửi qua REST thuần nên cần JSON, không nhận builder. */
@@ -150,14 +100,21 @@ export function buildRestPayload(
   options: BuildOptions = {},
 ): Record<string, unknown> {
   const built = buildMessagePayload(payload, context, options);
+  const components = (built.components ?? []).map(toJson);
+
+  if (payload.useComponentsV2) {
+    // Components V2 thay chỗ của content/embeds, gửi kèm hai field đó là lỗi 400.
+    return {
+      flags: Number(MessageFlags.IsComponentsV2),
+      components,
+      allowed_mentions: { parse: [] },
+    };
+  }
+
   return {
     content: built.content ?? undefined,
-    embeds: (built.embeds ?? []).map((embed) =>
-      embed instanceof EmbedBuilder ? embed.toJSON() : embed,
-    ),
-    components: (built.components ?? []).map((row) =>
-      row instanceof ActionRowBuilder ? row.toJSON() : row,
-    ),
+    embeds: (built.embeds ?? []).map(toJson),
+    components,
     allowed_mentions: { parse: [] },
   };
 }

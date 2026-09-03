@@ -116,6 +116,14 @@ export function listPublishedMessages(limit = 50): PublishedMessageRow[] {
     .all(limit) as unknown as PublishedMessageRow[];
 }
 
+/** Dùng để biết một nút đến từ template nào khi user bấm vào tin đã đăng. */
+export function getPublishedMessage(messageId: string): PublishedMessageRow | null {
+  const row = db
+    .prepare('SELECT * FROM published_messages WHERE message_id = ? ORDER BY created_at DESC LIMIT 1')
+    .get(messageId);
+  return (row as unknown as PublishedMessageRow) ?? null;
+}
+
 export function getSetting(key: string): string | null {
   const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as
     | { value: string }

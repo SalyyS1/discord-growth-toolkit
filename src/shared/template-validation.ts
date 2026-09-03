@@ -1,4 +1,5 @@
 import { DISCORD_LIMITS, type TemplatePayload } from './template-types';
+import { validateV2Layout } from './template-validation-v2';
 
 export interface ValidationIssue {
   level: 'error' | 'warning';
@@ -10,11 +11,44 @@ function textLength(value: string | undefined): number {
   return value ? value.length : 0;
 }
 
+/** Nút bấm dùng chung cho cả embed cổ điển và Components V2. */
+function validateButtons(payload: TemplatePayload): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const buttonCount = payload.linkButtons.length + (payload.optInButton ? 1 : 0);
+
+  if (buttonCount > DISCORD_LIMITS.buttonsPerRow) {
+    issues.push({
+      level: 'error',
+      field: 'buttons',
+      message: `Tối đa ${DISCORD_LIMITS.buttonsPerRow} nút một hàng, đang có ${buttonCount}`,
+    });
+  }
+
+  payload.linkButtons.forEach((button, index) => {
+    if (!/^https?:\/\//.test(button.url)) {
+      issues.push({
+        level: 'error',
+        field: `button[${index}].url`,
+        message: 'Link button phải bắt đầu bằng http:// hoặc https://',
+      });
+    }
+    if (!button.label.trim()) {
+      issues.push({ level: 'error', field: `button[${index}].label`, message: 'Thiếu nhãn nút' });
+    }
+  });
+
+  return issues;
+}
+
 /**
  * Kiểm tra trước khi gửi để không ăn lỗi 400 từ Discord.
  * error = Discord sẽ từ chối, warning = gửi được nhưng nên sửa.
  */
 export function validateTemplatePayload(payload: TemplatePayload): ValidationIssue[] {
+  if (payload.useComponentsV2) {
+    return [...validateV2Layout(payload), ...validateButtons(payload)];
+  }
+
   const issues: ValidationIssue[] = [];
 
   if (textLength(payload.content) > DISCORD_LIMITS.content) {
@@ -104,26 +138,7 @@ export function validateTemplatePayload(payload: TemplatePayload): ValidationIss
   }
 
   const buttonCount = payload.linkButtons.length + (payload.optInButton ? 1 : 0);
-  if (buttonCount > DISCORD_LIMITS.buttonsPerRow) {
-    issues.push({
-      level: 'error',
-      field: 'buttons',
-      message: `Tối đa ${DISCORD_LIMITS.buttonsPerRow} nút một hàng, đang có ${buttonCount}`,
-    });
-  }
-
-  payload.linkButtons.forEach((button, index) => {
-    if (!/^https?:\/\//.test(button.url)) {
-      issues.push({
-        level: 'error',
-        field: `button[${index}].url`,
-        message: 'Link button phải bắt đầu bằng http:// hoặc https://',
-      });
-    }
-    if (!button.label.trim()) {
-      issues.push({ level: 'error', field: `button[${index}].label`, message: 'Thiếu nhãn nút' });
-    }
-  });
+  issues.push(...validateButtons(payload));
 
   const hasAnything =
     textLength(payload.content) > 0 || payload.embeds.length > 0 || buttonCount > 0;
