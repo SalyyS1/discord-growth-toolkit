@@ -105,8 +105,12 @@ export function findEnvWarnings(): string[] {
   if (baseUrl) {
     const urlPort = baseUrl.port || (baseUrl.protocol === 'https:' ? '443' : '80');
     const isLocal = baseUrl.hostname === 'localhost' || baseUrl.hostname === '127.0.0.1';
+    // Domain ngoài không khai cổng gần như luôn đứng sau reverse proxy (Caddy/nginx
+    // nhận 443 rồi chuyển vào PORT), nên lệch cổng ở đó là bình thường. Chỉ soi khi
+    // trình duyệt gọi thẳng vào app: hostname local hoặc URL ghi rõ cổng.
+    const browserHitsAppDirectly = isLocal || baseUrl.port !== '';
 
-    if (urlPort !== port) {
+    if (browserHitsAppDirectly && urlPort !== port) {
       warnings.push(
         `PUBLIC_BASE_URL trỏ cổng ${urlPort} nhưng PORT=${port} — Discord sẽ báo "Invalid OAuth2 redirect_uri"`,
       );

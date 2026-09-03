@@ -42,6 +42,20 @@ test('https không cần khai cổng vẫn được coi là khớp', () => {
   );
 });
 
+test('domain https sau reverse proxy không bị báo lệch cổng với PORT của app', () => {
+  withEnv({ PUBLIC_BASE_URL: 'https://growth.example.com', PORT: '3000', HOST: '127.0.0.1' }, () =>
+    assert.deepEqual(findEnvWarnings(), []),
+  );
+});
+
+test('domain ngoài khai cổng tường minh vẫn bị bắt khi lệch PORT', () => {
+  withEnv({ PUBLIC_BASE_URL: 'https://growth.example.com:8443', PORT: '3000' }, () => {
+    const warnings = findEnvWarnings();
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0]!, /redirect_uri/);
+  });
+});
+
 test('domain ngoài chạy http bị cảnh báo vì cookie mất cờ Secure', () => {
   withEnv({ PUBLIC_BASE_URL: 'http://growth.example.com', PORT: '80' }, () => {
     const warnings = findEnvWarnings();
